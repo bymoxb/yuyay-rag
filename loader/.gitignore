@@ -1,0 +1,8 @@
+__pycache__
+.vscode
+db
+store
+chroma_db
+cache
+.env*
+!.env.example
