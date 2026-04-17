@@ -3,11 +3,13 @@ import dotenv
 
 from flask import Flask, Blueprint
 from flask_cors import CORS
+from llama_index.embeddings.ollama import OllamaEmbedding
 
 from src.application.usecase import GetUserByIdUseCase, ChatUseCase, GetChatsUseCase
 from src.infra.controllers import UserController, ChatController
 from src.infra.persistence.postgres import db, UserRepositoryAdapter, ChatRepositoryAdapter, MessageRepositoryAdapter, ModelRepositoryAdapter
 from src.infra.security import Oauth
+from src.infra.persistence.chroma import ChromaVectorRepositoryAdapter
 
 
 def create_app():
@@ -30,12 +32,25 @@ def create_app():
     db.init_app(app)
 
     # 2. Inyección de Dependencias Manual
+    embed_model = OllamaEmbedding(model_name=os.getenv("EMBED_MODEL"))
+    chromadb = ChromaVectorRepositoryAdapter(
+        host=os.getenv("CROMA_HOST"),
+        port=int(os.getenv("CROMA_PORT")),
+        collection_name=os.getenv("CROMA_COLLECTION"),
+        embed_model=embed_model
+    )
+
     chat_repo = ChatRepositoryAdapter(db.session)
     message_repo = MessageRepositoryAdapter(db.session)
     user_repo = UserRepositoryAdapter(db.session)
     model_repo = ModelRepositoryAdapter(db.session)
 
-    chat_usecase = ChatUseCase(chat_repo, user_repo, message_repo, model_repo)
+    chat_usecase = ChatUseCase(
+        chat_repo,
+        user_repo,
+        message_repo,
+        model_repo,
+        vector_repository=chromadb)
     get_user_by_id_usecase = GetUserByIdUseCase(user_repo)
     get_chats_usecase = GetChatsUseCase(chat_repo, user_repo)
 

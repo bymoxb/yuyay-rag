@@ -3,6 +3,7 @@ from flask.views import MethodView
 
 from src.application.usecase import ChatUseCase, GetChatsUseCase
 from src.infra.security import AuthUser
+from src.infra.factories.llm_factory import LLMFactory
 
 
 class ChatController(MethodView):
@@ -19,12 +20,15 @@ class ChatController(MethodView):
 
     def post(self):
         data = request.get_json()
-        # print("data", data)
+
+        llm_service = LLMFactory.get_llm(model_name=data.get("model"))
+
         message = self.chat_usecase.execute(
             message=data.get("message"),
             identity_provider=AuthUser.username(),
             chat_id=data.get("chat_id"),
             model_name=data.get("model"),
+            llm_service=llm_service
         )
 
-        return jsonify({"ok": True, "data": message}), 200
+        return jsonify({"ok": True, "data": message.to_dict()}), 200

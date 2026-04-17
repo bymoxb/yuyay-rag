@@ -1,7 +1,7 @@
 
 from src.domain.model import Chat, Message, Model
 from src.domain.valueobject import IdentityProviderId, PrimaryKey
-from src.domain.port import ChatRepository, MessageRepository, UserRepository, ModelRepository
+from src.domain.port import ChatRepository, MessageRepository, UserRepository, ModelRepository, LLMPort, VectorRepository
 
 
 class ChatUseCase:
@@ -9,13 +9,15 @@ class ChatUseCase:
                  chat_repository: ChatRepository,
                  user_repository: UserRepository,
                  message_repository: MessageRepository,
-                 model_repository: ModelRepository):
+                 model_repository: ModelRepository,
+                 vector_repository: VectorRepository):
         self.chat_repository = chat_repository
         self.user_repository = user_repository
         self.message_repository = message_repository
         self.model_repository = model_repository
+        self.vector_repository = vector_repository
 
-    def execute(self, identity_provider, message, chat_id=None, model_name=None):
+    def execute(self, identity_provider: str, message: str, chat_id: str = None, model_name: str = None, llm_service: LLMPort = None):
 
         user = self.user_repository.get_user(
             IdentityProviderId(identity_provider))
@@ -36,8 +38,6 @@ class ChatUseCase:
         if llm_model is None:
             raise Exception("Model not found")
 
-        print("Model seleccionado:", llm_model.to_dict())
-
         chat: Chat = None
 
         if chat_id is None:
@@ -56,16 +56,23 @@ class ChatUseCase:
             content=message,
             role="user")
 
-        # 1. Obtener el modelo con el que se va a generar la respuesta
-        # 2. Con el modelo, generar la respuesta a partir del mensaje del usuario
-        # 3. Guardar el mensaje del usuario y la respuesta generada en la base de datos
-
         self.message_repository.create_message(user_message)
-        # self.message_repository.create_message(response_message)
+
+        context = self.vector_repository.search_relevant_context(message)
+
+        answer = llm_service.generate_answer(message, context)
+
+        response_message = Message.create(
+            chat_id=chat.id,
+            user_id=user.id,
+            content=answer,
+            role="assistant")
+
+        self.message_repository.create_message(response_message)
 
         # self.chat_repository.update_chat_timestamp(chat.id)
 
-        # return response_message
+        return response_message
 
 
 class GetChatsUseCase:

@@ -30,3 +30,13 @@ class Message:
                        content=content,
                        user_id=user_id,
                        created_at=created_at)
+
+    def to_dict(self):
+        return {
+            "id": self.id.get_id(),
+            "chat_id": self.chat_id.get_id(),
+            "role": self.role,
+            "content": self.content,
+            "user_id": self.user_id.get_id(),
+            "created_at": self.created_at
+        }
