@@ -3,6 +3,24 @@ import requests
 from jose import jwt
 from jose.exceptions import JWTError
 from flask import request, jsonify, g
+from functools import wraps
+
+def has_role(role_allowed:list[str] = None):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+
+            roles = g.user.get('realm_access',{}).get('roles',[])
+
+            for role in roles:
+                if role in role_allowed:
+                    return f(*args, **kwargs)
+
+            return jsonify({"error": "Invalid Authorization header"}), 403
+
+        return wrapper
+
+    return decorator
 
 
 class Oauth:

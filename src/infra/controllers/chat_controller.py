@@ -4,6 +4,7 @@ from flask.views import MethodView
 from src.application.usecase import ChatUseCase, GetChatsUseCase
 from src.infra.security import AuthUser
 from src.infra.factories.llm_factory import LLMFactory
+from src.infra.security.oauth import has_role
 
 
 class ChatController(MethodView):
@@ -12,6 +13,7 @@ class ChatController(MethodView):
         self.chat_usecase = chat_usecase
         self.get_chats_usecase = get_chats_usecase
 
+    @has_role(['role_user'])
     def get(self):
         chats = self.get_chats_usecase.execute(
             AuthUser.username())

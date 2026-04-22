@@ -25,9 +25,6 @@ class ChatUseCase:
         if user is None:
             raise Exception("User not found")
 
-        if user.has_permission("chat") is False:
-            raise Exception("User does not have permission to chat")
-
         llm_model: Model = None
 
         if not model_name:
@@ -86,9 +83,6 @@ class GetChatsUseCase:
 
         if user is None:
             raise Exception("User not found")
-
-        if user.has_permission("chat") is False:
-            raise Exception("User does not have permission to chat")
 
         chats = self.chat_repository.get_chats(user.id)
 

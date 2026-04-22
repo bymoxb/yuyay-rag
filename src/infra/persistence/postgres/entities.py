@@ -1,60 +1,8 @@
 
 from src.infra.persistence.postgres import db
-from src.domain.model import User, Role, Functionality, Model, Chat, Message
+from src.domain.model import User, Model, Chat, Message
 from src.domain.valueobject import PrimaryKey
 
-
-class FunctionalityEntity(db.Model):
-    __tablename__ = 'functionality'
-    id = db.Column(db.String(36), primary_key=True)
-    code = db.Column(db.String(256), nullable=False, unique=True)
-    name = db.Column(db.String(256), nullable=False)
-
-    deleted_at = db.Column(db.DateTime, nullable=True)
-
-    def to_domain(self):
-        return Functionality.reconstitute(
-            id=PrimaryKey(self.id),
-            code=self.code,
-            name=self.name
-        )
-
-
-class RoleEntity(db.Model):
-    __tablename__ = 'role'
-    id = db.Column(db.String(36), primary_key=True)
-    name = db.Column(db.String(256), nullable=False, unique=True)
-    deleted_at = db.Column(db.DateTime, nullable=True)
-
-    functionalities = db.relationship(
-        'FunctionalityEntity',
-        secondary='role_functionality',
-
-        # 1. Filtro: Rol -> Tabla Intermedia (validamos que la relación no esté borrada)
-        primaryjoin="and_(RoleEntity.id == role_functionality.c.role_id, role_functionality.c.deleted_at == None)",
-
-        # 2. Filtro: Tabla Intermedia -> Funcionalidad (validamos que la funcionalidad no esté borrada)
-        secondaryjoin="and_(FunctionalityEntity.id == role_functionality.c.functionality_id, FunctionalityEntity.deleted_at == None)",
-        backref=db.backref('role', lazy='dynamic')
-    )
-
-    def to_domain(self, functionalities: list[FunctionalityEntity] = []):
-        return Role.reconstitute(
-            role_id=PrimaryKey(self.id),
-            name=self.name,
-            functionalities=[f.to_domain()
-                             for f in functionalities] if functionalities else []
-        )
-
-
-class RoleFunctionalityEntity(db.Model):
-    __tablename__ = 'role_functionality'
-    id = db.Column(db.String(36), primary_key=True)
-    role_id = db.Column(db.String(36), db.ForeignKey('role.id'))
-    functionality_id = db.Column(
-        db.String(36), db.ForeignKey('functionality.id'))
-
-    deleted_at = db.Column(db.DateTime, nullable=True)
 
 
 class UserEntity(db.Model):
@@ -65,30 +13,21 @@ class UserEntity(db.Model):
     email = db.Column(db.String(256), nullable=False, unique=True)
     department_id = db.Column(db.String(36), db.ForeignKey('department.id'))
 
-    roles = db.relationship(
-        'RoleEntity',
-        secondary='user_role',
-        primaryjoin="and_(UserEntity.id == user_role.c.user_id, user_role.c.deleted_at == None)",
-        secondaryjoin="and_(RoleEntity.id == user_role.c.role_id, RoleEntity.deleted_at == None)",
-        backref=db.backref('users', lazy='dynamic'))
+    # roles = db.relationship(
+    #     'RoleEntity',
+    #     secondary='user_role',
+    #     primaryjoin="and_(UserEntity.id == user_role.c.user_id, user_role.c.deleted_at == None)",
+    #     secondaryjoin="and_(RoleEntity.id == user_role.c.role_id, RoleEntity.deleted_at == None)",
+    #     backref=db.backref('users', lazy='dynamic'))
 
-    def to_domain(self, roles: list[RoleEntity] = []) -> User:
+    def to_domain(self) -> User:
         return User.reconstitute(
             id=PrimaryKey(self.id),
             name=self.full_name,
             email=self.email,
-            roles=roles,
             user_scopes=[]
         )
 
-
-class UserRoleEntity(db.Model):
-    __tablename__ = 'user_role'
-
-    id = db.Column(db.String(36), primary_key=True)
-    user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
-    role_id = db.Column(db.String(36), db.ForeignKey('role.id'))
-    deleted_at = db.Column(db.DateTime, nullable=True)
 
 
 class ModelEntity(db.Model):
