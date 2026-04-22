@@ -11,7 +11,7 @@ export const chatRoute = createRoute({
   path: "/",
   component: ChatPage,
   beforeLoad: ({ context }) => {
-    if (!context.user.functionalities.includes('chat')) {
+    if (!context.auth.hasRole(Roles.NORMAL)) {
       throw redirect({ to: "/forbidden" });
     }
   }

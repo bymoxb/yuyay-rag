@@ -4,7 +4,6 @@ import App from './App.tsx';
 import { ApiProvider } from './providers/api.provider.tsx';
 import { ConfigProvider } from './providers/config.provider.tsx';
 import { OAuthProvider } from './providers/oauth.provider.tsx';
-import { UserProvider } from './providers/user.provider.tsx';
 
 import './index.css';
 
@@ -15,9 +14,7 @@ createRoot(root).render(
     <ConfigProvider>
       <OAuthProvider>
         <ApiProvider>
-          <UserProvider>
-            <App />
-          </UserProvider>
+          <App />
         </ApiProvider>
       </OAuthProvider>
     </ConfigProvider>

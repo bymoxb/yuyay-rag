@@ -2,11 +2,16 @@ import Keycloak from "keycloak-js";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useConfig } from "./config.provider";
 
-type OAuthContextType = {
+type Profile = {
+  fullName: string,
   username: string,
+}
+
+export type OAuthContextType = {
+  profile: Profile,
   token: string,
-  updateToken: (seconds: number) => Promise<boolean>,
   logout: () => void,
+  hasRole: (role: string | Array<string>) => boolean,
 }
 
 const OAuthContext = createContext<OAuthContextType>(null!);
@@ -15,59 +20,79 @@ export const OAuthProvider: React.FunctionComponent<React.PropsWithChildren> = (
 
   const { apiUrl, ...config } = useConfig();
 
-  const [data, setData] = useState<OAuthContextType>(null!);
+  const [profile, setProfile] = useState<Profile>(null!);
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const isInitialized = useRef(false);
+  const keycloakRef = useRef<Keycloak>(null!);
 
   useEffect(() => {
     if (isInitialized.current) return;
     isInitialized.current = true;
 
+    keycloakRef.current = new Keycloak(config);
+
     const init = async () => {
 
       try {
-        const keycloak = new Keycloak(config);
 
-        const auth = await keycloak.init({
+        const auth = await keycloakRef.current.init({
           onLoad: 'check-sso',
         });
 
         if (!auth) {
-          keycloak.login();
+          keycloakRef.current.login();
+          return;
         }
 
         setAuthenticated(auth);
-        setData({
-          username: keycloak.tokenParsed?.preferred_username || '',
-          token: keycloak.token || '',
-          updateToken: keycloak.updateToken,
-          logout: () => keycloak.logout({ redirectUri: window.location.origin }),
+        setProfile({
+          username: keycloakRef.current.tokenParsed?.preferred_username,
+          fullName: keycloakRef.current.tokenParsed?.name,
         });
       } catch (error) {
         setAuthenticated(false);
-        setData(null!);
+        setProfile(null!);
       } finally {
-
         setLoading(false);
       }
 
 
     }
 
+    const interval = setInterval(() => {
+      keycloakRef.current.updateToken(30).catch(() => keycloakRef.current.logout());
+    }, 10000);
+
     init();
+
+    return () => clearInterval(interval);
+
   }, []);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (!authenticated || !data) {
+  if (!authenticated || !profile) {
     return <div>Not authenticated</div>;
   }
 
   return (
-    <OAuthContext.Provider value={data}>
+    <OAuthContext.Provider value={{
+      profile,
+      token: keycloakRef.current.token!,
+      logout: () => {
+        setLoading(true);
+        keycloakRef.current.logout({ redirectUri: window.location.origin });
+      },
+      hasRole: (role: string | Array<string>) => {
+        if (Array.isArray(role)) {
+          return role.some(r => keycloakRef.current.hasRealmRole(r));
+        }
+        return keycloakRef.current.hasRealmRole(role);
+      },
+    }}>
       {children}
     </OAuthContext.Provider>
   )

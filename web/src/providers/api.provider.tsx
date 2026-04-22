@@ -8,7 +8,7 @@ const ApiContext = createContext({});
 export const ApiProvider: React.FunctionComponent<React.PropsWithChildren> = ({ children }) => {
 
   const { apiUrl } = useConfig();
-  const { updateToken, token } = useOAuth();
+  const { token } = useOAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +17,6 @@ export const ApiProvider: React.FunctionComponent<React.PropsWithChildren> = ({ 
     client.defaults.baseURL = apiUrl;
 
     const interceptor = client.interceptors.request.use(async (config) => {
-      await updateToken(30);
       config.headers.Authorization = `Bearer ${token}`;
 
       return config;
