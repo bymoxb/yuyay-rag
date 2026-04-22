@@ -1,19 +1,5 @@
+import type { Response, User } from "../types";
 import client from "./client";
-
-type Response<T> = {
-  ok: true,
-  data: T,
-} | {
-  ok: false,
-  error: string,
-}
-
-type User = {
-  email: string,
-  fullName: string,
-  roles: string[],
-  functionalities: string[],
-}
 
 export const getUserByEmail = async (): Promise<Response<User>> => {
   try {
