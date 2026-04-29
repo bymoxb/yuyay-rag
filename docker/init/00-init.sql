@@ -1,0 +1,2 @@
+CREATE DATABASE rag_app;
+CREATE DATABASE rag_iam;

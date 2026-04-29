@@ -1,0 +1,40 @@
+services:
+  rag_chroma:
+    image: chromadb/chroma
+    container_name: rag-chroma
+    volumes:
+      - ./data/chroma:/data
+    ports:
+      - "8000:8000"
+
+  rag_db:
+    image: postgres:17
+    container_name: rag-db
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+
+  rag_iam:
+    image: quay.io/keycloak/keycloak:26.3
+    container_name: rag-iam
+    env_file:
+      - ../.env
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # Database configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://rag_db/rag_iam
+      KC_DB_USERNAME: ${DATABASE_USER}
+      KC_DB_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - rag_db
+    command: ["start-dev"]
