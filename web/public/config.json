@@ -1,6 +1,6 @@
 {
     "url": "http://localhost:8080",
-    "realm": "rag",
-    "clientId": "rag-spa",
+    "realm": "rag-app",
+    "clientId": "rag",
     "apiUrl": "http://localhost:9090/api"
 }
