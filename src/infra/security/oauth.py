@@ -16,7 +16,7 @@ def has_role(role_allowed:list[str] = None):
                 if role in role_allowed:
                     return f(*args, **kwargs)
 
-            return jsonify({"error": "Invalid Authorization header"}), 403
+            return jsonify({"error": "Access denied"}), 403
 
         return wrapper
 
