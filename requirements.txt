@@ -13,3 +13,10 @@ llama-index-llms-ollama
 llama-index-embeddings-ollama
 torch
 sentence-transformers
+llama-index-core
+llama-index-readers-docling
+llama-index-node-parser-docling
+llama-index-embeddings-huggingface
+llama-index-llms-huggingface-api
+llama-index-readers-file
+python-dotenv
