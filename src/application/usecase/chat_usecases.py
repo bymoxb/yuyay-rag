@@ -47,6 +47,9 @@ class ChatUseCase:
         else:
             chat = self.chat_repository.get_chat(PrimaryKey.from_str(chat_id))
 
+        if chat is None:
+            raise Exception("Chat not found")
+
         user_message = Message.create(
             chat_id=chat.id,
             user_id=user.id,
@@ -55,14 +58,20 @@ class ChatUseCase:
 
         self.message_repository.create_message(user_message)
 
+        answer = None
         context = self.vector_repository.search_relevant_context(message)
 
         answer = llm_service.generate_answer(message, context)
+        if answer is None:
+            raise Exception("LLM did not return an answer")
 
         response_message = Message.create(
             chat_id=chat.id,
             user_id=user.id,
-            content=answer,
+            content=answer.content,
+            latency=answer.latency,
+            tokens_completion=answer.tokens_completion,
+            tokens_prompt=answer.tokens_prompt,
             role="assistant")
 
         self.message_repository.create_message(response_message)

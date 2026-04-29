@@ -48,6 +48,7 @@ CREATE TABLE chat(
     user_id uuid NOT NULL,
     department_id uuid,
     model_id uuid,
+    rating smallint,
     --
     created_at timestamp DEFAULT now() NOT NULL,
     updated_at timestamp,
@@ -64,7 +65,12 @@ CREATE TABLE message(
     chat_id uuid NOT NULL,
     user_id uuid,
     content text NOT NULL,
-    "role" varchar(50) NOT NULL, -- user, assistant, system
+    "role" varchar(50) NOT NULL, -- user, assistant, system,
+    latency integer NOT NULL DEFAULT 0, -- in milliseconds
+    tokens_prompt integer NOT NULL DEFAULT 0,
+    tokens_completion integer NOT NULL DEFAULT 0,
+    retrieval_context jsonb,
+    rating smallint,
     --
     created_at timestamp DEFAULT now() NOT NULL,
     updated_at timestamp,

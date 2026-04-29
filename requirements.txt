@@ -16,3 +16,4 @@ psycopg2-binary==2.9.11
 python-dotenv==1.2.2
 python-jose==3.5.0
 requests==2.33.1
+tiktoken==0.12.0

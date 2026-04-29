@@ -12,7 +12,6 @@ class ChatRepositoryAdapter(ChatRepository):
 
     def create_chat(self, chat: Chat):
         chat_entity = ChatEntity.from_domain(chat)
-        print(chat_entity.to_dict())
         self.db_session.add(chat_entity)
         self.db_session.commit()
         return chat_entity.to_domain()

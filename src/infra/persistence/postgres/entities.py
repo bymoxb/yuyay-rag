@@ -63,6 +63,8 @@ class ChatEntity(db.Model):
     model_id = db.Column(
         db.String(36), db.ForeignKey('model.id'), nullable=True)
 
+    rating = db.Column(db.Integer, nullable=True)
+
     created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -116,6 +118,12 @@ class MessageEntity(db.Model):
     content = db.Column(db.Text, nullable=False)
     role = db.Column(db.String(50), nullable=False)  # user, assistant, system
 
+    latency = db.Column(db.Integer, nullable=False, default=0)
+    tokens_prompt = db.Column(db.Integer, nullable=False, default=0)
+    tokens_completion = db.Column(db.Integer, nullable=False, default=0)
+    retrieval_context = db.Column(db.JSON, nullable=True)
+    rating = db.Column(db.SmallInteger, nullable=True)
+
     created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -127,6 +135,11 @@ class MessageEntity(db.Model):
             content=self.content,
             user_id=PrimaryKey(self.user_id) if self.user_id else None,
             role=self.role,
+            latency=self.latency,
+            tokens_prompt=self.tokens_prompt,
+            tokens_completion=self.tokens_completion,
+            retrieval_context=self.retrieval_context,
+            rating=self.rating,
             created_at=self.created_at.timestamp() if self.created_at else None,
             # updated_at=self.updated_at.timestamp() if self.updated_at else None,
             # deleted_at=self.deleted_at.timestamp() if self.deleted_at else None
@@ -139,6 +152,11 @@ class MessageEntity(db.Model):
             user_id=message.user_id.get_id(),
             content=message.content,
             role=message.role,
+            latency=message.latency,
+            tokens_prompt=message.tokens_prompt,
+            tokens_completion=message.tokens_completion,
+            retrieval_context=message.retrieval_context,
+            rating=message.rating,
             created_at=db.func.now()
         )
 
