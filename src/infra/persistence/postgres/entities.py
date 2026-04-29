@@ -4,21 +4,12 @@ from src.domain.model import User, Model, Chat, Message
 from src.domain.valueobject import PrimaryKey
 
 
-
 class UserEntity(db.Model):
     __tablename__ = 'user'
 
     id = db.Column(db.String(36), primary_key=True)
     full_name = db.Column(db.String(256), nullable=False)
     email = db.Column(db.String(256), nullable=False, unique=True)
-    department_id = db.Column(db.String(36), db.ForeignKey('department.id'))
-
-    # roles = db.relationship(
-    #     'RoleEntity',
-    #     secondary='user_role',
-    #     primaryjoin="and_(UserEntity.id == user_role.c.user_id, user_role.c.deleted_at == None)",
-    #     secondaryjoin="and_(RoleEntity.id == user_role.c.role_id, RoleEntity.deleted_at == None)",
-    #     backref=db.backref('users', lazy='dynamic'))
 
     def to_domain(self) -> User:
         return User.reconstitute(
@@ -27,7 +18,6 @@ class UserEntity(db.Model):
             email=self.email,
             user_scopes=[]
         )
-
 
 
 class ModelEntity(db.Model):
