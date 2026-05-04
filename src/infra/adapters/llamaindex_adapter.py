@@ -12,6 +12,40 @@ from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
 from src.domain.port import LLMPort
 from src.domain.valueobject import Answer, Intent
 
+prompt_router = PromptTemplate("""Eres un clasificador de intención.
+
+Tu tarea es decidir si el mensaje del usuario debe ir a un sistema RAG de la empresa.
+
+Reglas:
+- Solo es "company_query" si pregunta sobre documentación, procesos, políticas o información interna.
+- Todo lo demás NO es company_query.
+
+Consulta:
+{query_str}
+
+Formato de la respuesta:
+
+{
+  "is_company_query": true/false,
+  "type": "company_query | greeting | out_of_scope | unclear"
+}
+""")
+
+prompt_fallback = PromptTemplate("""
+Eres un asistente interno de una empresa.
+
+Responde al usuario cuando su mensaje NO requiere consulta en documentación interna.
+
+Reglas:
+- Si es saludo, responde de forma breve y amable.
+- Si está fuera del contexto de la empresa, indica que solo puedes ayudar con temas internos.
+- No menciones sistemas internos.
+- Mantén la respuesta en 1-2 frases.
+
+Mensaje del usuario:
+{query_str}
+""")
+
 prompt_rag = PromptTemplate(
     """
 Eres un asistente digital experto en facturación electrónica.
@@ -46,6 +80,40 @@ Formato de respuesta:
 class LLMAdapter(LLMPort):
     def __init__(self, llamaindex_llm_instance):
         self.llm = llamaindex_llm_instance
+
+        self.synthesizer_router = get_response_synthesizer(
+            llm=llamaindex_llm_instance,
+            text_qa_template=prompt_router,
+        )
+
+    def determine_intent(self, query: str) -> Intent:
+        try:
+            prompt = prompt_router.replace("{query_str}", query)
+            response = self.llm.complete(prompt)
+
+            print(f"LLM response for intent determination: {response.text}")
+
+            texto = response.text
+
+            match = re.search(r'"type"\s*:\s*"([^"]+)"', texto)
+            type = match.group(1) if match else "out_of_scope"
+
+            match = re.search(r'"is_company_query"\s*:\s*(true|false)', texto)
+            is_company = match.group(1) == "true" if match else True
+
+            print(
+                f"Extracted intent - is_company_query: {is_company}, type: {type}")
+
+            return Intent(is_company_query=is_company, type=type)
+        except Exception as e:
+            print("Error in determine_intent:", e)
+            return Intent.out_of_scope()
+
+    def fallback_answer(self, query: str):
+        response = self.llm.complete(
+            prompt_fallback.format(query_str=query)
+        )
+        return response.text
 
     def generate_answer(self, prompt: str, context: list) -> str:
 

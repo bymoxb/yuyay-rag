@@ -1,3 +1,4 @@
+import time
 
 from src.domain.model import Chat, Message, Model
 from src.domain.valueobject import IdentityProviderId, PrimaryKey
@@ -58,12 +59,22 @@ class ChatUseCase:
 
         self.message_repository.create_message(user_message)
 
-        answer = None
-        context = self.vector_repository.search_relevant_context(message)
+        start_time = time.time()
 
+        # intent = llm_service.determine_intent(message)
+
+        answer = None
+
+        # if intent.is_company_query:
+        context = self.vector_repository.search_relevant_context(message)
         answer = llm_service.generate_answer(message, context)
+        # else:
+        #     answer = llm_service.fallback_answer(message)
+
         if answer is None:
             raise Exception("LLM did not return an answer")
+
+        end_time = time.time()
 
         response_message = Message.create(
             chat_id=chat.id,
