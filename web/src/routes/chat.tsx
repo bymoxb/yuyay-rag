@@ -63,7 +63,7 @@ function ChatPage() {
                 <div
                   className={`max-w-[90%] md:max-w-[80%] px-6 py-4 rounded-2xl shadow-sm bg-white text-gray-800 border border-gray-200`}
                 >
-                  Cargando...
+                  <TypingIndicator />
                 </div>
               </div>
             )
@@ -118,6 +118,16 @@ function ChatPage() {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex items-center space-x-1">
+      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></span>
+      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-300"></span>
     </div>
   );
 }
