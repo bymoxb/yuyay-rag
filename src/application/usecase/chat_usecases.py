@@ -1,4 +1,5 @@
 import time
+import os
 
 from src.domain.model import Chat, Message, Model
 from src.domain.valueobject import IdentityProviderId, PrimaryKey
@@ -11,12 +12,14 @@ class ChatUseCase:
                  user_repository: UserRepository,
                  message_repository: MessageRepository,
                  model_repository: ModelRepository,
-                 vector_repository: VectorRepository):
+                 vector_repository: VectorRepository,
+                 with_router: bool = False):
         self.chat_repository = chat_repository
         self.user_repository = user_repository
         self.message_repository = message_repository
         self.model_repository = model_repository
         self.vector_repository = vector_repository
+        self.with_router = with_router
 
     def execute(self, identity_provider: str, message: str, chat_id: str = None, model_name: str = None, llm_service: LLMPort = None):
 
@@ -59,22 +62,24 @@ class ChatUseCase:
 
         self.message_repository.create_message(user_message)
 
-        start_time = time.time()
-
-        # intent = llm_service.determine_intent(message)
-
         answer = None
 
-        # if intent.is_company_query:
-        context = self.vector_repository.search_relevant_context(message)
-        answer = llm_service.generate_answer(message, context)
-        # else:
-        #     answer = llm_service.fallback_answer(message)
+        if self.with_router:
+            intent = llm_service.determine_intent(message)
+
+            if intent.is_company_query:
+                context = self.vector_repository.search_relevant_context(
+                    message)
+                answer = llm_service.generate_answer(message, context)
+            else:
+                answer = llm_service.fallback_answer(message)
+
+        else:
+            context = self.vector_repository.search_relevant_context(message)
+            answer = llm_service.generate_answer(message, context)
 
         if answer is None:
             raise Exception("LLM did not return an answer")
-
-        end_time = time.time()
 
         response_message = Message.create(
             chat_id=chat.id,

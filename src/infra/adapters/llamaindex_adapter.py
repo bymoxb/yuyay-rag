@@ -12,7 +12,7 @@ from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
 from src.domain.port import LLMPort
 from src.domain.valueobject import Answer, Intent
 
-prompt_router = PromptTemplate("""Eres un clasificador de intención.
+prompt_router = ("""Eres un clasificador de intención.
 
 Tu tarea es decidir si el mensaje del usuario debe ir a un sistema RAG de la empresa.
 
@@ -110,10 +110,15 @@ class LLMAdapter(LLMPort):
             return Intent.out_of_scope()
 
     def fallback_answer(self, query: str):
-        response = self.llm.complete(
-            prompt_fallback.format(query_str=query)
-        )
-        return response.text
+        start_time = time.perf_counter()
+        response = self.llm.complete(prompt_fallback.format(query_str=query))
+        end_time = time.perf_counter()
+
+        latency = int((end_time - start_time) * 1000)
+        return Answer(content=response.text,
+                      latency=latency,
+                      tokens_prompt=0,
+                      tokens_completion=0)
 
     def generate_answer(self, prompt: str, context: list) -> str:
 

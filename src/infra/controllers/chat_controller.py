@@ -20,6 +20,7 @@ class ChatController(MethodView):
         chats_data = [chat.to_dict() for chat in chats]
         return jsonify({"ok": True, "data": chats_data}), 200
 
+    @has_role(['role_user'])
     def post(self):
         data = request.get_json()
 

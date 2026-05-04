@@ -50,7 +50,8 @@ def create_app():
         user_repo,
         message_repo,
         model_repo,
-        vector_repository=chromadb)
+        vector_repository=chromadb,
+        with_router=os.getenv("WITH_ROUTER", "False").lower() == "true")
     get_user_by_id_usecase = GetUserByIdUseCase(user_repo)
     get_chats_usecase = GetChatsUseCase(chat_repo, user_repo)
 
