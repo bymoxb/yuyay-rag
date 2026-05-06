@@ -16,3 +16,7 @@ class LLMPort(ABC):
     @abstractmethod
     def generate_answer(self, prompt: str, context: list) -> Answer:
         pass
+
+    @abstractmethod
+    def stream_answer(self, prompt: str, context: list):
+        pass

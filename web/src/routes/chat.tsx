@@ -1,10 +1,11 @@
 import { createRoute, redirect } from "@tanstack/react-router"
 import { rootRoute } from "./root"
 import { useEffect, useRef, useState } from "react";
-import { chatPlain } from "../services/chat.service";
+import { chatPlain, chatStream } from "../services/chat.service";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Roles } from "../types";
+import { useOAuth } from "../providers/oauth.provider";
 
 export const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -18,10 +19,81 @@ export const chatRoute = createRoute({
 })
 
 function ChatPage() {
+  const { token } = useOAuth()
   const [loading, setLoading] = useState(false)
   const [chatId, setChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const handlePlainChatSubmit = (form: FormData) => {
+    const message = form.get("message")?.toString() || "";
+    if (!message.trim()) return;
+
+    const inputElement = document.getElementById("message") as HTMLInputElement;
+    if (inputElement) inputElement.value = "";
+
+    setMessages((prev) => [...prev, { role: "user", content: message }]);
+    setLoading(true);
+    chatPlain(message, "gpt-4o-mini", chatId).then(result => {
+      if (result.ok) {
+        setMessages((prev) => [
+          ...prev,
+          { role: result.data.role, content: result.data.content },
+        ]);
+        if (!chatId) {
+          setChatId(result.data.chatId);
+        }
+      }
+    }).finally(() => { setLoading(false); });
+  }
+
+  const handleStreamChatSubmit = async (form: FormData) => {
+    const message = form.get("message")?.toString() || "";
+    if (!message.trim()) return;
+
+    const inputElement = document.getElementById("message") as HTMLInputElement;
+    if (inputElement) inputElement.value = "";
+
+    setMessages((prev) => [...prev, { role: "user", content: message }]);
+    // setLoading(true);
+
+    try {
+      let assistantContent = "";
+      let newChatId = chatId;
+
+      for await (const event of chatStream(message, "gpt-4o-mini", chatId, token)) {
+        // console.log({ event });
+
+        // Accumulate the content from stream events
+        if (event.data) {
+          assistantContent += event.data;
+          // Update message in real-time
+          setMessages((prev) => {
+            const updated = [...prev];
+            if (updated[updated.length - 1]?.role === "assistant") {
+              updated[updated.length - 1].content = assistantContent;
+            } else {
+              updated.push({ role: "assistant", content: assistantContent });
+            }
+            return updated;
+          });
+        }
+        // Capture chatId from first event if not set
+        if (!newChatId && event.chatId) {
+          newChatId = event.chatId;
+          setChatId(newChatId);
+        }
+      }
+    } catch (error) {
+      console.error("Stream error:", error);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Error processing response" },
+      ]);
+    } finally {
+      // setLoading(false);
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,6 +101,8 @@ function ChatPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-gray-50">
+
+      {/* <pre>{JSON.stringify({ loading })}</pre> */}
 
       {/* CONTENEDOR DE MENSAJES */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -57,7 +131,7 @@ function ChatPage() {
               </div>
             </div>
           ))}
-          {
+          {/* {
             loading && (
               <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800">
                 <div
@@ -67,7 +141,7 @@ function ChatPage() {
                 </div>
               </div>
             )
-          }
+          } */}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -76,27 +150,8 @@ function ChatPage() {
       <div className="p-4 bg-white border-t">
         <form
           className="max-w-3xl mx-auto relative"
-          action={(form) => {
-            const message = form.get("message")?.toString() || "";
-            if (!message.trim()) return;
-
-            const inputElement = document.getElementById("message") as HTMLInputElement;
-            if (inputElement) inputElement.value = "";
-
-            setMessages((prev) => [...prev, { role: "user", content: message }]);
-            setLoading(true);
-            chatPlain(message, "gpt-4o-mini", chatId).then(result => {
-              if (result.ok) {
-                setMessages((prev) => [
-                  ...prev,
-                  { role: result.data.role, content: result.data.content },
-                ]);
-                if (!chatId) {
-                  setChatId(result.data.chatId);
-                }
-              }
-            }).finally(() => { setLoading(false); });
-          }}
+          // action={handlePlainChatSubmit}
+          action={handleStreamChatSubmit}
         >
           <input
             id="message"
@@ -112,14 +167,18 @@ function ChatPage() {
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-full"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-            </svg>
+            <SendIcon />
           </button>
         </form>
       </div>
     </div>
   );
+}
+
+function SendIcon() {
+  return (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+  </svg>);
 }
 
 function TypingIndicator() {

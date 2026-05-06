@@ -96,6 +96,17 @@ class ChatUseCase:
 
         return response_message
 
+    def execute_stream(self, identity_provider: str, message: str, chat_id: str = None, model_name: str = None, llm_service: LLMPort = None):
+        if not message or len(message.strip()) == 0:
+            raise ValueError("Query vacía")
+
+        if len(message) > 500:
+            raise ValueError("Query demasiado larga")
+
+        context = self.vector_repository.search_relevant_context(message)
+
+        return llm_service.stream_answer(message, context)
+
 
 class GetChatsUseCase:
     def __init__(self, chat_repository: ChatRepository, user_repository: UserRepository):

@@ -159,3 +159,41 @@ class LLMAdapter(LLMPort):
             encoding = tiktoken.get_encoding("cl100k_base")
 
         return TokenCountingHandler(tokenizer=encoding.encode)
+
+    def stream_answer(self, prompt: str, context: list):
+        token_counter = self.__get_token_counter(self.llm.model)
+        callback_manager = CallbackManager([token_counter])
+
+        synthesizer_rag = get_response_synthesizer(
+            llm=self.llm,
+            text_qa_template=prompt_rag,
+            callback_manager=callback_manager,
+            streaming=True,
+        )
+
+        start_time = time.perf_counter()
+
+        response = synthesizer_rag.synthesize(
+            query=QueryBundle(prompt),
+            nodes=context
+        )
+
+        for token in response.response_gen:
+            yield {
+                "type": "chunk",
+                "data": token
+            }
+
+        end_time = time.perf_counter()
+        latency = int((end_time - start_time) * 1000)
+
+        print(f"latency: {latency}")
+
+        yield {
+            "type": "end",
+            "data": {
+                "latency": latency,
+                "tokens_prompt": token_counter.prompt_llm_token_count,
+                "tokens_completion": token_counter.completion_llm_token_count
+            }
+        }

@@ -1,4 +1,6 @@
-from flask import jsonify, request
+import json
+
+from flask import jsonify, request, Response, stream_with_context
 from flask.views import MethodView
 
 from src.application.usecase import ChatUseCase, GetChatsUseCase
@@ -35,3 +37,35 @@ class ChatController(MethodView):
         )
 
         return jsonify({"ok": True, "data": message.to_dict()}), 200
+
+
+class ChatStreamController(MethodView):
+
+    def __init__(self, chat_usecase: ChatUseCase):
+        self.chat_usecase = chat_usecase
+
+    @has_role(['role_user'])
+    def post(self):
+        data = request.get_json()
+
+        llm_service = LLMFactory.get_llm(model_name=data.get("model"))
+
+        try:
+            generator = self.chat_usecase.execute_stream(
+                message=data.get("message"),
+                identity_provider=AuthUser.username(),
+                chat_id=data.get("chat_id"),
+                model_name=data.get("model"),
+                llm_service=llm_service
+            )
+        except ValueError as e:
+            return {"error": str(e)}, 400
+
+        def generate():
+            for event in generator:
+                yield f"data: {json.dumps(event)}\n\n"
+
+        return Response(
+            stream_with_context(generate()),
+            content_type="text/event-stream"
+        )
