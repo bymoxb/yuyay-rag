@@ -37,7 +37,8 @@ def create_app():
         host=os.getenv("CROMA_HOST"),
         port=int(os.getenv("CROMA_PORT")),
         collection_name=os.getenv("CROMA_COLLECTION"),
-        embed_model=embed_model
+        embed_model=embed_model,
+        similarity_top_k=int(os.getenv("SIMILARITY_TOP_K", 5))
     )
 
     chat_repo = ChatRepositoryAdapter(db.session)

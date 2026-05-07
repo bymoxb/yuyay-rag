@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ChromaVectorRepositoryAdapter(VectorRepository):
 
-    def __init__(self, host: str, port: int, collection_name: str, embed_model):
+    def __init__(self, host: str, port: int, collection_name: str, embed_model, similarity_top_k: int = 5):
 
         # 2. Conectar a ChromaDB
         logger.info(f"Conectando a ChromaDB en {host}:{port}...")
@@ -38,7 +38,8 @@ class ChromaVectorRepositoryAdapter(VectorRepository):
         )
 
         # 6. Crear el retriever
-        self.retriever = self.index.as_retriever(similarity_top_k=3)
+        self.retriever = self.index.as_retriever(
+            similarity_top_k=similarity_top_k)
 
         logger.info(
             f"Adaptador ChromaDB inicializado con la colección: {collection_name}")
