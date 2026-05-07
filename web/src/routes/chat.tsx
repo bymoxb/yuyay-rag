@@ -27,6 +27,7 @@ function ChatPage() {
     onSubmit,
     value,
     onChangeValue,
+    chatId,
   } = useStreamChat()
 
   useEffect(() => {
@@ -35,6 +36,7 @@ function ChatPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-gray-50">
+      {/* <pre>{JSON.stringify({ chatId })}</pre> */}
 
       {/* CONTENEDOR DE MENSAJES */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8">

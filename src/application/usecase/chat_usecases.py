@@ -139,16 +139,12 @@ class ChatUseCase:
 
         def persistence_wrapper():
 
-            data = {
-                "chat_id": chat.id.to_str(),
-                "title": chat.title,
-            }
-
-            print("Starting stream with data:", data)
-
             yield {
                 "type": "start",
-                "data": data
+                "data": {
+                    "chat_id": chat.id.to_str(),
+                    "title": chat.title,
+                }
             }
 
             full_content = ""

@@ -58,7 +58,6 @@ export function useStreamChat() {
 
     try {
       let assistantContent = "";
-      let newChatId = chatId;
 
       for await (const event of chatStream(messageToSend, "gpt-4o-mini", chatId, token)) {
 
@@ -76,11 +75,11 @@ export function useStreamChat() {
             }
             return updated;
           });
-        }
-        // Capture chatId from first event if not set
-        if (!newChatId && event.chatId) {
-          newChatId = event.chatId;
-          setChatId(newChatId);
+        } else if (event.type === "start") {
+          // Capture chatId from first event if not set
+          if (!chatId && event.data.chat_id) {
+            setChatId(event.data.chat_id);
+          }
         }
       }
     } catch (error) {

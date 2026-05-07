@@ -27,7 +27,7 @@ export async function* chatStream(message: string, model: string, chatId: string
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ message, model, chatId }),
+      body: JSON.stringify({ message, model, chat_id: chatId }),
     });
 
     if (!response.ok) {
