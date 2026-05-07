@@ -15,3 +15,6 @@ class PrimaryKey:
 
     def get_id(self) -> str:
         return self.id
+
+    def to_str(self) -> str:
+        return str(self.id)

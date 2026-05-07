@@ -97,15 +97,83 @@ class ChatUseCase:
         return response_message
 
     def execute_stream(self, identity_provider: str, message: str, chat_id: str = None, model_name: str = None, llm_service: LLMPort = None):
-        if not message or len(message.strip()) == 0:
-            raise ValueError("Query vacía")
+        user = self.user_repository.get_user(
+            IdentityProviderId(identity_provider))
+        if user is None:
+            raise Exception("User not found")
 
-        if len(message) > 500:
-            raise ValueError("Query demasiado larga")
+        llm_model = self.model_repository.get_default_model(
+        ) if not model_name else self.model_repository.get_model_by_name(model_name)
+        if llm_model is None:
+            raise Exception("Model not found")
 
-        context = self.vector_repository.search_relevant_context(message)
+        # 1. Obtener o crear Chat (Lógica igual a execute)
+        if chat_id is None:
+            chat = Chat.create(
+                user_id=user.id, title=f"Chat de {user.name}", model_id=llm_model.id)
+            self.chat_repository.create_chat(chat)
+        else:
+            chat = self.chat_repository.get_chat(PrimaryKey.from_str(chat_id))
 
-        return llm_service.stream_answer(message, context)
+        if chat is None:
+            raise Exception("Chat not found")
+
+        # 2. Guardar mensaje del usuario
+        user_message = Message.create(
+            chat_id=chat.id, user_id=user.id, content=message, role="user")
+        self.message_repository.create_message(user_message)
+
+        if self.with_router:
+            intent = llm_service.determine_intent(message)
+
+            if intent.is_company_query:
+                context = self.vector_repository.search_relevant_context(
+                    message)
+                generator = llm_service.stream_answer(message, context)
+            else:
+                generator = llm_service.stream_fallback_answer(message)
+
+        else:
+            context = self.vector_repository.search_relevant_context(message)
+            generator = llm_service.stream_answer(message, context)
+
+        def persistence_wrapper():
+
+            data = {
+                "chat_id": chat.id.to_str(),
+                "title": chat.title,
+            }
+
+            print("Starting stream with data:", data)
+
+            yield {
+                "type": "start",
+                "data": data
+            }
+
+            full_content = ""
+            metadata = {}
+
+            for event in generator:
+                if event["type"] == "chunk":
+                    full_content += event["data"]
+                    yield event
+                elif event["type"] == "end":
+                    metadata = event["data"]
+                    yield event
+
+            response_message = Message.create(
+                chat_id=chat.id,
+                user_id=user.id,
+                content=full_content,
+                latency=metadata.get("latency", 0),
+                tokens_completion=metadata.get("tokens_completion", 0),
+                tokens_prompt=metadata.get("tokens_prompt", 0),
+                role="assistant"
+            )
+            self.message_repository.create_message(response_message)
+
+        return persistence_wrapper()
 
 
 class GetChatsUseCase:

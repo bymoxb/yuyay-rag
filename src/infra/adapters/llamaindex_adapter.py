@@ -160,6 +160,38 @@ class LLMAdapter(LLMPort):
 
         return TokenCountingHandler(tokenizer=encoding.encode)
 
+    def stream_fallback_answer(self, query: str):
+        # Configuramos el contador de tokens para el fallback
+        token_counter = self.__get_token_counter(self.llm.model)
+        self.llm.callback_manager = CallbackManager([token_counter])
+
+        start_time = time.perf_counter()
+
+        # Formateamos el prompt de fallback
+        prompt = prompt_fallback.format(query_str=query)
+
+        # stream_complete se usa para completar texto plano (sin RAG)
+        response_gen = self.llm.stream_complete(prompt)
+
+        for response in response_gen:
+            # En stream_complete, el fragmento está en response.delta
+            yield {
+                "type": "chunk",
+                "data": response.delta or ""
+            }
+
+        end_time = time.perf_counter()
+        latency = int((end_time - start_time) * 1000)
+
+        yield {
+            "type": "end",
+            "data": {
+                "latency": latency,
+                "tokens_prompt": token_counter.prompt_llm_token_count,
+                "tokens_completion": token_counter.completion_llm_token_count
+            }
+        }
+
     def stream_answer(self, prompt: str, context: list):
         token_counter = self.__get_token_counter(self.llm.model)
         callback_manager = CallbackManager([token_counter])
@@ -186,8 +218,6 @@ class LLMAdapter(LLMPort):
 
         end_time = time.perf_counter()
         latency = int((end_time - start_time) * 1000)
-
-        print(f"latency: {latency}")
 
         yield {
             "type": "end",

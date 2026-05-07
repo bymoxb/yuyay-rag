@@ -18,5 +18,9 @@ class LLMPort(ABC):
         pass
 
     @abstractmethod
+    def stream_fallback_answer(self, query: str):
+        pass
+
+    @abstractmethod
     def stream_answer(self, prompt: str, context: list):
         pass

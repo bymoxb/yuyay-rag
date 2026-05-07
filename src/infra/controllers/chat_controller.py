@@ -58,8 +58,8 @@ class ChatStreamController(MethodView):
                 model_name=data.get("model"),
                 llm_service=llm_service
             )
-        except ValueError as e:
-            return {"error": str(e)}, 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
 
         def generate():
             for event in generator:
