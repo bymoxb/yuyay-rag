@@ -16,7 +16,6 @@ export const chatPlain = async (message: string, model: string, chatId?: string 
   }
 }
 
-// New streaming function using fetch for real-time SSE consumption
 export async function* chatStream(message: string, model: string, chatId: string | null, token: string): AsyncGenerator<any, void, unknown> {
   const url = `${client.defaults.baseURL}/stream`;
   const headers: any = {
@@ -57,7 +56,7 @@ export async function* chatStream(message: string, model: string, chatId: string
           if (dataStr) {
             try {
               const event = JSON.parse(dataStr);
-              yield event; // Yield the parsed event (e.g., message chunk)
+              yield event;
             } catch (parseError) {
               console.error('Failed to parse SSE data:', parseError);
             }

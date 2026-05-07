@@ -14,11 +14,13 @@ export type User = {
   functionalities: string[],
 }
 
+export type RoleMessageType = "user" | "assistant";
+
 export type Message = {
   id: string,
   chatId: string,
   content: string,
-  role: string,
+  role: RoleMessageType,
 }
 
 

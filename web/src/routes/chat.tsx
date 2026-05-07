@@ -1,11 +1,11 @@
-import { createRoute, redirect } from "@tanstack/react-router"
-import { rootRoute } from "./root"
-import { useEffect, useRef, useState } from "react";
-import { chatPlain, chatStream } from "../services/chat.service";
+import { createRoute, redirect } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import SendIcon from "../components/SendIcon";
+import { useStreamChat } from "../hooks/useChat";
 import { Roles } from "../types";
-import { useOAuth } from "../providers/oauth.provider";
+import { rootRoute } from "./root";
 
 export const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -19,81 +19,15 @@ export const chatRoute = createRoute({
 })
 
 function ChatPage() {
-  const { token } = useOAuth()
-  const [loading, setLoading] = useState(false)
-  const [chatId, setChatId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  const handlePlainChatSubmit = (form: FormData) => {
-    const message = form.get("message")?.toString() || "";
-    if (!message.trim()) return;
-
-    const inputElement = document.getElementById("message") as HTMLInputElement;
-    if (inputElement) inputElement.value = "";
-
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
-    setLoading(true);
-    chatPlain(message, "gpt-4o-mini", chatId).then(result => {
-      if (result.ok) {
-        setMessages((prev) => [
-          ...prev,
-          { role: result.data.role, content: result.data.content },
-        ]);
-        if (!chatId) {
-          setChatId(result.data.chatId);
-        }
-      }
-    }).finally(() => { setLoading(false); });
-  }
-
-  const handleStreamChatSubmit = async (form: FormData) => {
-    const message = form.get("message")?.toString() || "";
-    if (!message.trim()) return;
-
-    const inputElement = document.getElementById("message") as HTMLInputElement;
-    if (inputElement) inputElement.value = "";
-
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
-    // setLoading(true);
-
-    try {
-      let assistantContent = "";
-      let newChatId = chatId;
-
-      for await (const event of chatStream(message, "gpt-4o-mini", chatId, token)) {
-        // console.log({ event });
-
-        // Accumulate the content from stream events
-        if (event.data) {
-          assistantContent += event.data;
-          // Update message in real-time
-          setMessages((prev) => {
-            const updated = [...prev];
-            if (updated[updated.length - 1]?.role === "assistant") {
-              updated[updated.length - 1].content = assistantContent;
-            } else {
-              updated.push({ role: "assistant", content: assistantContent });
-            }
-            return updated;
-          });
-        }
-        // Capture chatId from first event if not set
-        if (!newChatId && event.chatId) {
-          newChatId = event.chatId;
-          setChatId(newChatId);
-        }
-      }
-    } catch (error) {
-      console.error("Stream error:", error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Error processing response" },
-      ]);
-    } finally {
-      // setLoading(false);
-    }
-  };
+  const {
+    loading,
+    messages,
+    onSubmit,
+    value,
+    onChangeValue,
+  } = useStreamChat()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,46 +36,11 @@ function ChatPage() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-gray-50">
 
-      {/* <pre>{JSON.stringify({ loading })}</pre> */}
-
       {/* CONTENEDOR DE MENSAJES */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="max-w-3xl mx-auto flex flex-col gap-6">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[90%] md:max-w-[80%] px-6 py-4 rounded-2xl shadow-sm ${msg.role === "user"
-                  ? "bg-blue-600 text-white shadow-blue-200"
-                  : "bg-white text-gray-800 border border-gray-200"
-                  }`}
-              >
-                {msg.role === "user" ? (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                ) : (
-                  /* Renderizado de Documentación */
-                  <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {/* {
-            loading && (
-              <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800">
-                <div
-                  className={`max-w-[90%] md:max-w-[80%] px-6 py-4 rounded-2xl shadow-sm bg-white text-gray-800 border border-gray-200`}
-                >
-                  <TypingIndicator />
-                </div>
-              </div>
-            )
-          } */}
+          {messages.map((msg, i) => (msg.role === "user" ? <UserMessage key={i} content={msg.content} /> : <AssistantMessage key={i} content={msg.content} />))}
+          {/* {loading && (<LoadingIndicator />)} */}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -150,8 +49,7 @@ function ChatPage() {
       <div className="p-4 bg-white border-t">
         <form
           className="max-w-3xl mx-auto relative"
-          // action={handlePlainChatSubmit}
-          action={handleStreamChatSubmit}
+          onSubmit={onSubmit}
         >
           <input
             id="message"
@@ -159,12 +57,15 @@ function ChatPage() {
             required
             autoFocus
             autoComplete="off"
+            disabled={loading}
             className="w-full rounded-xl border border-gray-300 pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             placeholder="Consulta la documentación interna..."
-            defaultValue="Describe la estructura de los comprobantes electrónicos"
+            value={value}
+            onChange={(e) => onChangeValue(e.target.value)}
           />
           <button
             type="submit"
+            disabled={loading}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-full"
           >
             <SendIcon />
@@ -175,18 +76,28 @@ function ChatPage() {
   );
 }
 
-function SendIcon() {
-  return (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-  </svg>);
+function UserMessage({ content }: { content: string }) {
+  return (<div className={`flex justify-end`}>
+    <div
+      className={`max-w-[90%] md:max-w-[90%] p-4 rounded-2xl shadow-sm bg-blue-600 text-white shadow-blue-200`}
+    >
+      <p className="whitespace-pre-wrap">{content}</p>
+    </div>
+  </div>)
 }
 
-function TypingIndicator() {
+function AssistantMessage({ content }: { content: string }) {
   return (
-    <div className="flex items-center space-x-1">
-      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
-      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></span>
-      <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-300"></span>
+    <div className={`flex justify-start`}>
+      <div
+        className={`max-w-[90%] md:max-w-[90%] p-4 rounded-2xl shadow-sm bg-white text-gray-800 border border-gray-200`}
+      >
+        <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content}
+          </ReactMarkdown>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
