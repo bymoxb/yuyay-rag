@@ -1,4 +1,4 @@
-import type { Chat, Message, Response } from "../types";
+import type { Chat, Cursor, CursorState, Message, Response } from "../types";
 import client from "./client";
 
 export const chatPlain = async (message: string, model: string, chatId?: string | null | undefined): Promise<Response<Message>> => {
@@ -70,12 +70,30 @@ export async function* chatStream(message: string, model: string, chatId: string
   }
 }
 
-export const fetchChatHistory = async (): Promise<Response<Chat[]>> => {
+export const fetchChatHistory = async (cursor?: CursorState): Promise<Response<Cursor<Chat>>> => {
   try {
-    const { data } = await client.get("chat")
+    const params = new URLSearchParams();
+
+    params.set("limit", "20")
+
+    if (cursor?.id) {
+      params.set("cursor_id", cursor.id);
+    }
+
+    if (cursor?.createdAt) {
+      params.set("cursor_created_at", cursor.createdAt);
+    }
+
+    const { data } = await client.get("chat?" + params.toString())
     return {
       ok: true,
-      data: data.data,
+      data: {
+        items: data.data.items ?? [],
+        hasMore: data?.data?.has_more ?? false,
+        nextCursorCreatedAt: data?.data?.next_cursor_created_at,
+        nextCursorId: data?.data?.next_cursor_id,
+
+      },
     }
   } catch (error) {
     return { ok: false, error: "Failed to fetch chat history" }

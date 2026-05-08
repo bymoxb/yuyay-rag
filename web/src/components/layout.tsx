@@ -1,7 +1,9 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useOAuth } from "../providers/oauth.provider";
 import { Roles } from "../types";
-import ChatHistory from "./ChatHistory";
+import { lazy } from "react";
+
+const ChatHistory = lazy(() => import("./ChatHistory"))
 
 export default function Layout() {
   const { hasRole, logout } = useOAuth()

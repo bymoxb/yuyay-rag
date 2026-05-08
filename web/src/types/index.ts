@@ -6,6 +6,17 @@ export type Response<T> = {
   error: string,
 }
 
+export type Cursor<T> = {
+  items: Array<T>,
+  hasMore: boolean,
+  nextCursorCreatedAt?: string,
+  nextCursorId?: string,
+}
+
+export type CursorState = {
+  id?: string;
+  createdAt?: string,
+}
 
 export type User = {
   email: string,
@@ -34,3 +45,5 @@ export const Roles = {
   ADMIN: "role_admin",
   REPORT: "role_report",
 } as const
+
+

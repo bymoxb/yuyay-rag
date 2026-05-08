@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { chatPlain, chatStream, fetchChatHistory, fetchMessagesByChatId } from "../services/chat.service";
-import type { Chat, Message, RoleMessageType } from "../types";
+import type { Chat, CursorState, Message, RoleMessageType } from "../types";
 import { useOAuth } from "../providers/oauth.provider";
 
 export function usePlainChat() {
@@ -124,21 +124,39 @@ export function useChatHistory() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const result = await fetchChatHistory();
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<CursorState | undefined>();
+  const mounted = useRef(false)
+
+  const fetchData = async (cursor?: CursorState) => {
+    setLoadingMore(true);
+    const result = await fetchChatHistory(cursor);
     if (result.ok) {
-      setChats(result.data);
+      setChats(prev => [...prev, ...result.data.items]);
+      setHasMore(result.data.hasMore);
+      setNextCursor({
+        id: result.data.nextCursorId,
+        createdAt: result.data.nextCursorCreatedAt,
+      })
     }
-    setLoading(false);
+    setLoadingMore(false);
   }
 
   useEffect(() => {
-    fetchData();
+    if (mounted.current) return;
+    mounted.current = true;
+    setLoading(true);
+    fetchData().finally(() => setLoading(false));
   }, []);
 
   return {
     chats,
     loading,
+    loadingMore,
+    hasMore,
+    nextCursor,
+    loadNext: () => fetchData(nextCursor)
   }
 }

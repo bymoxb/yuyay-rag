@@ -3,7 +3,7 @@ import { useChatHistory } from "../hooks/useChat";
 
 export default function ChatHistory() {
 
-  const { chats, loading } = useChatHistory()
+  const { chats, loading, hasMore, loadNext, loadingMore } = useChatHistory()
 
   return (
     <div className="flex flex-col gap-1 w-full h-full min-h-0">
@@ -20,6 +20,13 @@ export default function ChatHistory() {
                 </Link>
               </li>
             ))}
+            {
+              hasMore && (
+                <li>
+                  <button className={loadingMore ? "hover:cursor-not-allowed" : "hover:cursor-pointer"} disabled={loadingMore} onClick={loadNext}>Cargar mas</button>
+                </li>
+              )
+            }
           </ul>
         )}
       </main>
