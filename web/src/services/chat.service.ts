@@ -1,4 +1,4 @@
-import type { Message, Response } from "../types";
+import type { Chat, Message, Response } from "../types";
 import client from "./client";
 
 export const chatPlain = async (message: string, model: string, chatId?: string | null | undefined): Promise<Response<Message>> => {
@@ -67,5 +67,17 @@ export async function* chatStream(message: string, model: string, chatId: string
   } catch (error) {
     console.error('Error in chatStream:', error);
     throw error;
+  }
+}
+
+export const fetchChatHistory = async (): Promise<Response<Chat[]>> => {
+  try {
+    const { data } = await client.get("chat")
+    return {
+      ok: true,
+      data: data.data,
+    }
+  } catch (error) {
+    return { ok: false, error: "Failed to fetch chat history" }
   }
 }

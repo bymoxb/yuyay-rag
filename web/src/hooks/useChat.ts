@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { chatPlain, chatStream } from "../services/chat.service";
-import type { RoleMessageType } from "../types";
+import { useEffect, useState } from "react";
+import { chatPlain, chatStream, fetchChatHistory } from "../services/chat.service";
+import type { Chat, Message, RoleMessageType } from "../types";
 import { useOAuth } from "../providers/oauth.provider";
 
 export function usePlainChat() {
@@ -101,5 +101,28 @@ export function useStreamChat() {
     //
     value,
     onChangeValue: (v: string) => setValue(v),
+  }
+}
+
+export function useChatHistory() {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const result = await fetchChatHistory();
+    if (result.ok) {
+      setChats(result.data);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    chats,
+    loading,
   }
 }

@@ -3,9 +3,11 @@ import { chatRoute } from "./routes/chat";
 import { forbiddenRoute } from "./routes/forbidden";
 import { reportRoute } from "./routes/reports";
 import { rootRoute } from "./routes/root";
+import { chatIdRoute } from "./routes/chat.$chatId";
 
 const routeTree = rootRoute.addChildren([
   chatRoute,
+  chatIdRoute,
   reportRoute,
   forbiddenRoute,
 ])

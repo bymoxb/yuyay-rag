@@ -16,6 +16,11 @@ export type User = {
 
 export type RoleMessageType = "user" | "assistant";
 
+export type Chat = {
+  id: string,
+  title: string,
+}
+
 export type Message = {
   id: string,
   chatId: string,
