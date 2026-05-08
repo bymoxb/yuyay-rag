@@ -16,7 +16,7 @@ export const chatPlain = async (message: string, model: string, chatId?: string 
   }
 }
 
-export async function* chatStream(message: string, model: string, chatId: string | null, token: string): AsyncGenerator<any, void, unknown> {
+export async function* chatStream(message: string, model: string, chatId: string | number | null | undefined, token: string): AsyncGenerator<any, void, unknown> {
   const url = `${client.defaults.baseURL}/stream`;
   const headers: any = {
     'Content-Type': 'application/json',
@@ -79,5 +79,20 @@ export const fetchChatHistory = async (): Promise<Response<Chat[]>> => {
     }
   } catch (error) {
     return { ok: false, error: "Failed to fetch chat history" }
+  }
+}
+
+export const fetchMessagesByChatId = async (chatId: string | number): Promise<Response<Message[]>> => {
+  try {
+    const { data } = await client.get(`chat/${chatId}/messages`)
+    return {
+      ok: true,
+      data: data.data,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: "Failed to fetch messages for chat"
+    }
   }
 }

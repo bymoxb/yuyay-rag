@@ -1,6 +1,7 @@
 import { createRoute, redirect } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { Roles } from "../types";
+import { Chat } from "./chat";
 
 export const chatIdRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -17,6 +18,6 @@ function ChatIdPage() {
   const { chatId } = chatIdRoute.useParams()
 
   return (
-    <pre>{JSON.stringify({ chatId })}</pre>
+    <Chat chatId={chatId} />
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { chatPlain, chatStream, fetchChatHistory } from "../services/chat.service";
+import { chatPlain, chatStream, fetchChatHistory, fetchMessagesByChatId } from "../services/chat.service";
 import type { Chat, Message, RoleMessageType } from "../types";
 import { useOAuth } from "../providers/oauth.provider";
 
@@ -37,11 +37,12 @@ export function usePlainChat() {
   }
 }
 
-export function useStreamChat() {
+export function useStreamChat(_chatId: number | string | undefined) {
   const { token } = useOAuth()
 
-  const [loading, setLoading] = useState(false)
-  const [chatId, setChatId] = useState<string | null>(null)
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [chatId, setChatId] = useState<string | number | null | undefined>(_chatId)
   const [value, setValue] = useState("");
   const [messages, setMessages] = useState<{ role: RoleMessageType; content: string }[]>([]);
 
@@ -54,7 +55,7 @@ export function useStreamChat() {
     setValue("");
 
     setMessages((prev) => [...prev, { role: "user", content: messageToSend }]);
-    setLoading(true);
+    setIsStreaming(true);
 
     try {
       let assistantContent = "";
@@ -89,12 +90,27 @@ export function useStreamChat() {
         { role: "assistant", content: "Error processing response" },
       ]);
     } finally {
-      setLoading(false);
+      setIsStreaming(false);
     }
   };
 
+  const fetchMessages = async (chatId: string | number) => {
+    setLoadingMessages(true);
+    const result = await fetchMessagesByChatId(chatId);
+    if (result.ok) {
+      setMessages(result.data.map(msg => ({ role: msg.role, content: msg.content })));
+    }
+    setLoadingMessages(false);
+  }
+
+  useEffect(() => {
+    if (!_chatId) return;
+    fetchMessages(_chatId);
+  }, [_chatId]);
+
   return {
-    loading,
+    isStreaming,
+    loadingMessages,
     chatId,
     messages,
     onSubmit,
