@@ -14,3 +14,8 @@ class MessageRepositoryAdapter(MessageRepository):
         self.db_session.add(entity)
         self.db_session.commit()
         return entity.to_domain()
+
+    def get_messages_by_chat_id(self, chat_id: int) -> list[Message]:
+        entities = self.db_session.query(
+            MessageEntity).filter_by(chat_id=chat_id).all()
+        return [entity.to_domain() for entity in entities]

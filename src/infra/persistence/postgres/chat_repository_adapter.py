@@ -16,9 +16,11 @@ class ChatRepositoryAdapter(ChatRepository):
         self.db_session.commit()
         return chat_entity.to_domain()
 
-    def get_chat(self, chat_id: PrimaryKey):
+    def get_chat(self, chat_id: PrimaryKey, user_id: PrimaryKey):
         chat_entity = self.db_session.query(ChatEntity).filter(
-            ChatEntity.id == chat_id.get_id()).first()
+            ChatEntity.id == chat_id.get_id(),
+            ChatEntity.user_id == user_id.get_id()
+        ).first()
 
         return chat_entity.to_domain() if chat_entity else None
 

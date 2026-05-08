@@ -49,7 +49,8 @@ class ChatUseCase:
 
             self.chat_repository.create_chat(chat)
         else:
-            chat = self.chat_repository.get_chat(PrimaryKey.from_str(chat_id))
+            chat = self.chat_repository.get_chat(
+                PrimaryKey.from_str(chat_id), user.id)
 
         if chat is None:
             raise Exception("Chat not found")
@@ -113,7 +114,8 @@ class ChatUseCase:
                 user_id=user.id, title=f"Chat de {user.name}", model_id=llm_model.id)
             self.chat_repository.create_chat(chat)
         else:
-            chat = self.chat_repository.get_chat(PrimaryKey.from_str(chat_id))
+            chat = self.chat_repository.get_chat(
+                PrimaryKey.from_str(chat_id), user.id)
 
         if chat is None:
             raise Exception("Chat not found")

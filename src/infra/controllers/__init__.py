@@ -1,3 +1,3 @@
 
 from .user_controller import UserController
-from .chat_controller import ChatController, ChatStreamController
+from .chat_controller import ChatController, ChatStreamController, ChatHistoryController

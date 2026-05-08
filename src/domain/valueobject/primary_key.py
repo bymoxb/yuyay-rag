@@ -11,7 +11,7 @@ class PrimaryKey:
 
     @staticmethod
     def from_str(id_str: str):
-        return PrimaryKey(id=str(uuid.UUID(id_str)))
+        return PrimaryKey(id=uuid.UUID(id_str))
 
     def get_id(self) -> str:
         return self.id

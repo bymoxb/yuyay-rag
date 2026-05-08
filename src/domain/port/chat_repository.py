@@ -7,7 +7,7 @@ from ..valueobject import IdentityProviderId, PrimaryKey
 class ChatRepository(ABC):
 
     @abstractmethod
-    def get_chat(self, chat_id: PrimaryKey) -> Chat:
+    def get_chat(self, chat_id: PrimaryKey, identity_provider: PrimaryKey) -> Chat:
         pass
 
     @abstractmethod

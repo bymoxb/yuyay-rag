@@ -3,7 +3,7 @@ import json
 from flask import jsonify, request, Response, stream_with_context
 from flask.views import MethodView
 
-from src.application.usecase import ChatUseCase, GetChatsUseCase
+from src.application.usecase import ChatUseCase, GetChatsUseCase, MessageUseCase
 from src.infra.security import AuthUser
 from src.infra.factories.llm_factory import LLMFactory
 from src.infra.security.oauth import has_role
@@ -69,3 +69,21 @@ class ChatStreamController(MethodView):
             stream_with_context(generate()),
             content_type="text/event-stream"
         )
+
+
+class ChatHistoryController(MethodView):
+
+    def __init__(self, message_usecase: MessageUseCase):
+        self.message_usecase = message_usecase
+
+    @has_role(['role_user'])
+    def get(self, chat_id):
+        try:
+            messages = self.message_usecase.execute(
+                chat_id=chat_id,
+                identity_provider=AuthUser.username()
+            )
+            messages_data = [msg.to_dict() for msg in messages]
+            return jsonify({"ok": True, "data": messages_data}), 200
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
