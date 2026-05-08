@@ -17,10 +17,21 @@ class ChatController(MethodView):
 
     @has_role(['role_user'])
     def get(self):
-        chats = self.get_chats_usecase.execute(
-            AuthUser.username())
-        chats_data = [chat.to_dict() for chat in chats]
-        return jsonify({"ok": True, "data": chats_data}), 200
+        result = self.get_chats_usecase.execute(
+            identity_provider=AuthUser.username(),
+            limit=request.args.get("limit", default=10, type=int),
+            cursor_id=request.args.get("cursor_id"),
+            cursor_created_at=request.args.get("cursor_created_at")
+        )
+        chats = [chat.to_dict() for chat in result.items]
+        return jsonify({
+            "ok": True,
+            "data": {
+                "items": chats,
+                "next_cursor_id": result.cursor_id,
+                "next_cursor_created_at": result.cursor_created_at,
+                "has_more": result.has_more,
+            }}), 200
 
     @has_role(['role_user'])
     def post(self):

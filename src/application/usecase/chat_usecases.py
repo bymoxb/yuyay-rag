@@ -179,13 +179,17 @@ class GetChatsUseCase:
         self.chat_repository = chat_repository
         self.user_repository = user_repository
 
-    def execute(self, identity_provider):
+    def execute(self, identity_provider, limit: int = 10, cursor_id: PrimaryKey = None, cursor_created_at: str = None):
         user = self.user_repository.get_user(
             IdentityProviderId(identity_provider))
 
         if user is None:
             raise Exception("User not found")
 
-        chats = self.chat_repository.get_chats(user.id)
+        if limit <= 0:
+            limit = 10
 
-        return chats
+        if limit > 50:
+            limit = 50
+
+        return self.chat_repository.get_chats(limit, user.id, cursor_id, cursor_created_at)

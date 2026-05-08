@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from ..model import Chat
-from ..valueobject import IdentityProviderId, PrimaryKey
+from ..valueobject import IdentityProviderId, PrimaryKey, CursorPagination
 
 
 class ChatRepository(ABC):
@@ -15,5 +15,5 @@ class ChatRepository(ABC):
         pass
 
     @abstractmethod
-    def get_chats(self, user_id: PrimaryKey) -> list[Chat]:
+    def get_chats(self, limit: int, user_id: PrimaryKey, cursor_id: PrimaryKey = None, cursor_created_at: str = None) -> CursorPagination:
         pass
