@@ -5,3 +5,7 @@ venv
 !.env.example
 
 .vscode
+
+
+# PyCharm
+.idea/
